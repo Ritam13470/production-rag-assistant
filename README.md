@@ -103,3 +103,21 @@ Features:
 - Open the Retrieval Debug Panel to inspect the exact context sent to Gemini.
 
 These tools help debug common RAG problems such as weak retrieval, irrelevant chunks, missing context, and hallucinated answers.
+
+## Project Architecture
+
+The project now separates reusable RAG logic into a small rag package.
+
+rag/
+|-- __init__.py
+|-- config.py       # shared paths, collection name, and model names
+|-- embeddings.py   # safe Gemini embedding wrapper
+|-- utils.py        # response parsing, source formatting, and text previews
+
+Main app files:
+
+ingest.py   # loads TXT/PDF files and rebuilds ChromaDB
+ask.py      # terminal-based RAG assistant
+app.py      # Streamlit web UI with upload, re-index, sources, and debug panel
+
+This structure keeps the project easier to maintain and prepares it for future advanced RAG features.
