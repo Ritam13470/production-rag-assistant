@@ -56,3 +56,17 @@ Type exit to quit.
 ## Notes
 
 The .env, .venv, and chroma_db folders are ignored by Git so secrets and generated files are not uploaded to GitHub.
+
+## Web UI
+
+This project also includes a simple Streamlit web interface.
+
+Run the web app:
+
+streamlit run app.py
+
+Then open the local URL shown in the terminal, usually:
+
+http://localhost:8501
+
+In the browser, type a question and click Ask.
