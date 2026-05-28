@@ -1,0 +1,17 @@
+[
+  {
+    "question": "What is CharacterForge AI?",
+    "expected_keywords": ["browser-based", "3D character", "platform"],
+    "should_answer": true
+  },
+  {
+    "question": "What backend technologies does CharacterForge AI use?",
+    "expected_keywords": ["Node.js", "Express", "MongoDB", "Cloudinary"],
+    "should_answer": true
+  },
+  {
+    "question": "What is the pricing plan of CharacterForge AI?",
+    "expected_keywords": [],
+    "should_answer": false
+  }
+]
