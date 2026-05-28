@@ -90,3 +90,16 @@ streamlit run app.py
 5. Ask questions from the uploaded documents.
 
 Important: For learning, use sample documents only. Avoid uploading private or sensitive documents to cloud API-based apps.
+
+## Better RAG Quality Tools
+
+The app includes retrieval debugging tools to make answers more transparent.
+
+Features:
+
+- Choose how many chunks to retrieve using the sidebar slider.
+- View source previews used to generate the answer.
+- See Chroma distance scores for retrieved chunks.
+- Open the Retrieval Debug Panel to inspect the exact context sent to Gemini.
+
+These tools help debug common RAG problems such as weak retrieval, irrelevant chunks, missing context, and hallucinated answers.
