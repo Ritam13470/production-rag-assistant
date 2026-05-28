@@ -39,7 +39,7 @@ class SafeGoogleEmbeddings(Embeddings):
 
 
 PROMPT_TEMPLATE = """
-You are a helpful RAG assistant.
+You are a careful and trustworthy RAG assistant.
 
 Answer the user's question using only the context below.
 
@@ -47,6 +47,7 @@ Rules:
 1. If the answer is in the context, answer clearly.
 2. If the answer is not in the context, say: "I could not find that in the provided documents."
 3. Do not invent facts outside the context.
+4. Prefer a concise answer first, then add useful detail only if supported by the context.
 
 Context:
 {context}
@@ -122,6 +123,34 @@ def load_rag_components():
     return vectorstore, llm, prompt
 
 
+def format_source_label(doc, score=None):
+    source = doc.metadata.get("source", "Unknown source")
+    page = doc.metadata.get("page")
+    file_type = doc.metadata.get("type")
+
+    label_parts = [source]
+
+    if file_type:
+        label_parts.append(f"type: {file_type}")
+
+    if page:
+        label_parts.append(f"page: {page}")
+
+    if score is not None:
+        label_parts.append(f"distance: {score:.4f}")
+
+    return " | ".join(label_parts)
+
+
+def preview_text(text, max_chars=900):
+    clean_text = " ".join(text.split())
+
+    if len(clean_text) <= max_chars:
+        return clean_text
+
+    return clean_text[:max_chars] + "..."
+
+
 st.set_page_config(
     page_title="Production RAG Assistant",
     page_icon="??",
@@ -137,6 +166,23 @@ with st.sidebar:
     st.write("Chat Model: Gemini 2.5 Flash")
     st.write("Embedding Model: Gemini Embedding")
     st.warning("For learning, upload sample documents only. Avoid private or sensitive files.")
+
+    st.divider()
+
+    st.header("Retrieval Settings")
+    top_k = st.slider(
+        "Number of chunks to retrieve",
+        min_value=1,
+        max_value=8,
+        value=3
+    )
+
+    show_debug = st.checkbox(
+        "Show retrieval debug panel",
+        value=True
+    )
+
+    st.caption("Chroma distance score: lower usually means more similar.")
 
     st.divider()
 
@@ -206,7 +252,15 @@ if st.button("Ask"):
         with st.spinner("Searching documents and generating answer..."):
             vectorstore, llm, prompt = load_rag_components()
 
-            docs = vectorstore.similarity_search(question, k=3)
+            scored_docs = vectorstore.similarity_search_with_score(
+                question,
+                k=top_k
+            )
+
+            docs = [
+                doc
+                for doc, score in scored_docs
+            ]
 
             context = "\n\n".join(
                 doc.page_content for doc in docs
@@ -225,14 +279,23 @@ if st.button("Ask"):
 
         st.subheader("Sources")
 
-        if docs:
-            for index, doc in enumerate(docs, start=1):
-                source = doc.metadata.get("source", "Unknown source")
-                page = doc.metadata.get("page")
+        if scored_docs:
+            for index, item in enumerate(scored_docs, start=1):
+                doc, score = item
 
-                if page:
-                    st.write(f"{index}. {source} - page {page}")
-                else:
-                    st.write(f"{index}. {source}")
+                with st.expander(f"Source {index}: {format_source_label(doc, score)}"):
+                    st.write(preview_text(doc.page_content))
         else:
             st.write("No sources found.")
+
+        if show_debug:
+            st.subheader("Retrieval Debug Panel")
+
+            st.write("This panel shows the chunks retrieved before Gemini generated the answer.")
+
+            for index, item in enumerate(scored_docs, start=1):
+                doc, score = item
+
+                st.markdown(f"**Chunk {index}**")
+                st.write(format_source_label(doc, score))
+                st.code(preview_text(doc.page_content, max_chars=1500))
