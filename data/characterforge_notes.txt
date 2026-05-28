@@ -1,0 +1,9 @@
+CharacterForge AI is a browser-based 3D character creation platform.
+
+The project allows users to upload 3D models, preview them, customize colors, save uploaded models, and reopen them from the dashboard.
+
+The backend uses Node.js, Express, MongoDB, and Cloudinary for persistent model uploads.
+
+The frontend is inspired by Sketchfab-style 3D model pages with model viewer, download actions, share actions, embed actions, and polished asset presentation.
+
+The main goal of CharacterForge AI is to help creators build, customize, manage, and present 3D characters in a premium web interface.
