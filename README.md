@@ -121,3 +121,23 @@ ask.py      # terminal-based RAG assistant
 app.py      # Streamlit web UI with upload, re-index, sources, and debug panel
 
 This structure keeps the project easier to maintain and prepares it for future advanced RAG features.
+
+## RAG Evaluation
+
+The project includes a basic evaluation script for testing answer quality.
+
+Evaluation files:
+
+eval_questions.json   # test questions, expected keywords, and refusal checks
+evaluate.py           # runs the test cases against the RAG pipeline
+
+Run evaluation:
+
+python evaluate.py
+
+The evaluator checks whether answers contain expected keywords and whether the assistant correctly refuses to answer when the document does not contain the answer.
+
+Example output:
+
+Passed 3 out of 3 tests.
+Evaluation status: SUCCESS
