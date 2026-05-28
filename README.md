@@ -70,3 +70,23 @@ Then open the local URL shown in the terminal, usually:
 http://localhost:8501
 
 In the browser, type a question and click Ask.
+
+## Browser Upload Workflow
+
+The Streamlit app supports uploading documents directly from the browser.
+
+Steps:
+
+1. Run the web app:
+
+streamlit run app.py
+
+2. Upload one or more TXT or PDF files.
+
+3. Click Save Uploaded Files.
+
+4. Click Rebuild Vector Database.
+
+5. Ask questions from the uploaded documents.
+
+Important: For learning, use sample documents only. Avoid uploading private or sensitive documents to cloud API-based apps.
