@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -8,6 +12,7 @@ from langchain_chroma import Chroma
 
 load_dotenv()
 
+DATA_DIR = "data"
 DB_DIR = "chroma_db"
 COLLECTION_NAME = "rag_documents"
 EMBEDDING_MODEL = "gemini-embedding-2-preview"
@@ -70,7 +75,32 @@ def get_response_text(response):
     return str(content)
 
 
-@st.cache_resource
+def save_uploaded_files(uploaded_files):
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+    saved_files = []
+
+    for uploaded_file in uploaded_files:
+        file_path = os.path.join(DATA_DIR, uploaded_file.name)
+
+        with open(file_path, "wb") as file:
+            file.write(uploaded_file.getbuffer())
+
+        saved_files.append(file_path)
+
+    return saved_files
+
+
+def rebuild_vector_database():
+    result = subprocess.run(
+        [sys.executable, "ingest.py"],
+        capture_output=True,
+        text=True
+    )
+
+    return result
+
+
 def load_rag_components():
     embeddings = SafeGoogleEmbeddings(
         model_name=EMBEDDING_MODEL
@@ -99,14 +129,68 @@ st.set_page_config(
 )
 
 st.title("Production RAG Assistant")
-st.write("Ask questions from your TXT and PDF documents using Gemini, LangChain, and ChromaDB.")
+st.write("Upload TXT/PDF files, rebuild the vector database, and ask questions using Gemini, LangChain, and ChromaDB.")
 
 with st.sidebar:
     st.header("Project Info")
     st.write("Vector DB: ChromaDB")
     st.write("Chat Model: Gemini 2.5 Flash")
     st.write("Embedding Model: Gemini Embedding")
-    st.info("Run python ingest.py after adding or changing files in the data folder.")
+    st.warning("For learning, upload sample documents only. Avoid private or sensitive files.")
+
+    st.divider()
+
+    st.header("Current Files")
+
+    if os.path.exists(DATA_DIR):
+        files = [
+            file_name
+            for file_name in os.listdir(DATA_DIR)
+            if file_name.lower().endswith((".txt", ".pdf"))
+        ]
+
+        if files:
+            for file_name in files:
+                st.write(f"- {file_name}")
+        else:
+            st.write("No TXT/PDF files found.")
+    else:
+        st.write("Data folder does not exist yet.")
+
+st.subheader("1. Upload Documents")
+
+uploaded_files = st.file_uploader(
+    "Upload TXT or PDF files",
+    type=["txt", "pdf"],
+    accept_multiple_files=True
+)
+
+if uploaded_files:
+    if st.button("Save Uploaded Files"):
+        saved_files = save_uploaded_files(uploaded_files)
+
+        st.success("Files saved successfully.")
+
+        for file_path in saved_files:
+            st.write(file_path)
+
+st.subheader("2. Rebuild Vector Database")
+
+st.write("Click this after adding or changing files.")
+
+if st.button("Rebuild Vector Database"):
+    with st.spinner("Rebuilding vector database. This may take a moment..."):
+        result = rebuild_vector_database()
+
+    if result.returncode == 0:
+        st.success("Vector database rebuilt successfully.")
+        st.code(result.stdout)
+    else:
+        st.error("Vector database rebuild failed.")
+        st.code(result.stdout)
+        st.code(result.stderr)
+
+st.subheader("3. Ask Questions")
 
 question = st.text_input(
     "Ask a question",
@@ -116,6 +200,8 @@ question = st.text_input(
 if st.button("Ask"):
     if not question.strip():
         st.warning("Please type a question first.")
+    elif not os.path.exists(DB_DIR):
+        st.error("Vector database not found. Please click Rebuild Vector Database first.")
     else:
         with st.spinner("Searching documents and generating answer..."):
             vectorstore, llm, prompt = load_rag_components()
