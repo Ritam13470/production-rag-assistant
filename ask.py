@@ -1,39 +1,18 @@
 from dotenv import load_dotenv
 
-from langchain_core.embeddings import Embeddings
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
+
+from rag.config import DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
+from rag.embeddings import SafeGoogleEmbeddings
+from rag.utils import get_response_text
 
 load_dotenv()
 
-DB_DIR = "chroma_db"
-COLLECTION_NAME = "rag_documents"
-EMBEDDING_MODEL = "gemini-embedding-2-preview"
-CHAT_MODEL = "gemini-2.5-flash"
-
-
-class SafeGoogleEmbeddings(Embeddings):
-    def __init__(self, model_name):
-        self.embedding_model = GoogleGenerativeAIEmbeddings(
-            model=model_name
-        )
-
-    def embed_documents(self, texts):
-        vectors = []
-
-        for text in texts:
-            vector = self.embedding_model.embed_query(text)
-            vectors.append(vector)
-
-        return vectors
-
-    def embed_query(self, text):
-        return self.embedding_model.embed_query(text)
-
 
 PROMPT_TEMPLATE = """
-You are a helpful RAG assistant.
+You are a careful and trustworthy RAG assistant.
 
 Answer the user's question using only the context below.
 
@@ -41,6 +20,7 @@ Rules:
 1. If the answer is in the context, answer clearly.
 2. If the answer is not in the context, say: "I could not find that in the provided documents."
 3. Do not invent facts outside the context.
+4. Prefer a concise answer first, then add useful detail only if supported by the context.
 
 Context:
 {context}
@@ -50,23 +30,6 @@ Question:
 
 Answer:
 """
-
-
-def get_response_text(response):
-    content = response.content
-
-    if isinstance(content, list):
-        text = ""
-
-        for part in content:
-            if isinstance(part, dict):
-                text += part.get("text", "")
-            else:
-                text += str(part)
-
-        return text
-
-    return str(content)
 
 
 def main():
@@ -123,7 +86,12 @@ def main():
         print("Sources:")
         for index, doc in enumerate(docs, start=1):
             source = doc.metadata.get("source", "Unknown source")
-            print(f"{index}. {source}")
+            page = doc.metadata.get("page")
+
+            if page:
+                print(f"{index}. {source}, page {page}")
+            else:
+                print(f"{index}. {source}")
 
         print("-" * 60)
 

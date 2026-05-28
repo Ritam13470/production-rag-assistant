@@ -4,37 +4,13 @@ from dotenv import load_dotenv
 from pypdf import PdfReader
 
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 
+from rag.config import DATA_DIR, DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL
+from rag.embeddings import SafeGoogleEmbeddings
+
 load_dotenv()
-
-DATA_DIR = "data"
-DB_DIR = "chroma_db"
-COLLECTION_NAME = "rag_documents"
-EMBEDDING_MODEL = "gemini-embedding-2-preview"
-
-
-class SafeGoogleEmbeddings(Embeddings):
-    def __init__(self, model_name):
-        self.embedding_model = GoogleGenerativeAIEmbeddings(
-            model=model_name
-        )
-
-    def embed_documents(self, texts):
-        vectors = []
-
-        for index, text in enumerate(texts, start=1):
-            print(f"Creating embedding for chunk {index} of {len(texts)}...")
-            vector = self.embedding_model.embed_query(text)
-            vectors.append(vector)
-
-        return vectors
-
-    def embed_query(self, text):
-        return self.embedding_model.embed_query(text)
 
 
 def load_txt_file(file_path):

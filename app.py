@@ -5,37 +5,15 @@ import sys
 import streamlit as st
 from dotenv import load_dotenv
 
-from langchain_core.embeddings import Embeddings
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 
+from rag.config import DATA_DIR, DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
+from rag.embeddings import SafeGoogleEmbeddings
+from rag.utils import get_response_text, preview_text, format_source_label
+
 load_dotenv()
-
-DATA_DIR = "data"
-DB_DIR = "chroma_db"
-COLLECTION_NAME = "rag_documents"
-EMBEDDING_MODEL = "gemini-embedding-2-preview"
-CHAT_MODEL = "gemini-2.5-flash"
-
-
-class SafeGoogleEmbeddings(Embeddings):
-    def __init__(self, model_name):
-        self.embedding_model = GoogleGenerativeAIEmbeddings(
-            model=model_name
-        )
-
-    def embed_documents(self, texts):
-        vectors = []
-
-        for text in texts:
-            vector = self.embedding_model.embed_query(text)
-            vectors.append(vector)
-
-        return vectors
-
-    def embed_query(self, text):
-        return self.embedding_model.embed_query(text)
 
 
 PROMPT_TEMPLATE = """
@@ -57,23 +35,6 @@ Question:
 
 Answer:
 """
-
-
-def get_response_text(response):
-    content = response.content
-
-    if isinstance(content, list):
-        text = ""
-
-        for part in content:
-            if isinstance(part, dict):
-                text += part.get("text", "")
-            else:
-                text += str(part)
-
-        return text
-
-    return str(content)
 
 
 def save_uploaded_files(uploaded_files):
@@ -121,34 +82,6 @@ def load_rag_components():
     prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
 
     return vectorstore, llm, prompt
-
-
-def format_source_label(doc, score=None):
-    source = doc.metadata.get("source", "Unknown source")
-    page = doc.metadata.get("page")
-    file_type = doc.metadata.get("type")
-
-    label_parts = [source]
-
-    if file_type:
-        label_parts.append(f"type: {file_type}")
-
-    if page:
-        label_parts.append(f"page: {page}")
-
-    if score is not None:
-        label_parts.append(f"distance: {score:.4f}")
-
-    return " | ".join(label_parts)
-
-
-def preview_text(text, max_chars=900):
-    clean_text = " ".join(text.split())
-
-    if len(clean_text) <= max_chars:
-        return clean_text
-
-    return clean_text[:max_chars] + "..."
 
 
 st.set_page_config(
