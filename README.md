@@ -241,3 +241,23 @@ rag/database_utils.py   # safely clears only the generated vector database folde
 Important:
 
 The clear button only removes the generated chroma_db folder. It does not delete files inside the data folder.
+
+## Uploaded Document Deletion
+
+The Streamlit app supports deleting individual uploaded documents from the data folder.
+
+Features:
+
+- Choose a TXT/PDF document from a dropdown
+- Require confirmation before deleting the selected document
+- Delete only safe files directly inside the data folder
+- Reject path-style filenames
+- Show a reminder to rebuild the vector database after deleting a document
+
+Related file:
+
+rag/document_manager.py   # safely validates and deletes uploaded TXT/PDF files
+
+Important:
+
+After deleting a document, rebuild the vector database so old chunks from that document are removed from ChromaDB.
