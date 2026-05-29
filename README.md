@@ -201,3 +201,24 @@ Related file:
 rag/document_stats.py   # collects document and vector database statistics
 
 This makes the app easier to inspect before asking questions.
+
+## Safe Upload Handling
+
+The Streamlit app uses safe upload handling for TXT and PDF files.
+
+Related file:
+
+rag/upload_utils.py   # sanitizes uploaded filenames and prevents unsafe paths
+
+Upload safety features:
+
+- Allows only TXT and PDF files
+- Removes unsafe path parts such as ../
+- Cleans spaces and special characters from filenames
+- Converts file extensions to lowercase
+- Prevents accidental overwrites by creating unique filenames
+- Shows the original filename and the saved filename after upload
+
+Example:
+
+my file (final)!!.PDF -> my_file_final.pdf
