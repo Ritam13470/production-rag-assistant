@@ -5,29 +5,14 @@ import sys
 import streamlit as st
 from dotenv import load_dotenv
 
-from rag.config import DATA_DIR, DB_DIR
+from rag.config import DB_DIR
 from rag.document_stats import get_document_dashboard_stats
 from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
+from rag.upload_utils import save_uploaded_files
 from rag.utils import preview_text, format_source_label
 
 load_dotenv()
-
-
-def save_uploaded_files(uploaded_files):
-    os.makedirs(DATA_DIR, exist_ok=True)
-
-    saved_files = []
-
-    for uploaded_file in uploaded_files:
-        file_path = os.path.join(DATA_DIR, uploaded_file.name)
-
-        with open(file_path, "wb") as file:
-            file.write(uploaded_file.getbuffer())
-
-        saved_files.append(file_path)
-
-    return saved_files
 
 
 def rebuild_vector_database():
@@ -117,12 +102,20 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
     if st.button("Save Uploaded Files"):
-        saved_files = save_uploaded_files(uploaded_files)
+        try:
+            saved_files = save_uploaded_files(uploaded_files)
 
-        st.success("Files saved successfully.")
+            st.success("Files saved successfully.")
 
-        for file_path in saved_files:
-            st.write(file_path)
+            for file_info in saved_files:
+                st.write(
+                    f"{file_info['original_name']} ? {file_info['saved_name']}"
+                )
+
+            st.info("Refresh the page to update the sidebar file list.")
+
+        except ValueError as error:
+            st.error(str(error))
 
 st.subheader("2. Rebuild Vector Database")
 
