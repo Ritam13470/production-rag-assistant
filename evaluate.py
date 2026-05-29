@@ -1,5 +1,6 @@
 import json
 
+from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
 
 REFUSAL_TEXT = "I could not find that in the provided documents."
@@ -31,12 +32,12 @@ def evaluate_case(test_case):
         answer = result.answer
         source_count = len(result.docs)
 
-    except Exception as error:
+    except RagPipelineError as error:
         return {
             "question": question,
             "answer": "",
             "passed": False,
-            "reason": f"Evaluation could not run because the model call failed: {error}",
+            "reason": error.user_message,
             "source_count": 0,
             "error": True
         }

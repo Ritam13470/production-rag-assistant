@@ -1,3 +1,4 @@
+from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
 
 
@@ -15,25 +16,31 @@ def main():
             print("Goodbye.")
             break
 
-        result = answer_question(
-            question=question,
-            top_k=3
-        )
+        try:
+            result = answer_question(
+                question=question,
+                top_k=3
+            )
 
-        print()
-        print("Answer:")
-        print(result.answer)
+            print()
+            print("Answer:")
+            print(result.answer)
 
-        print()
-        print("Sources:")
-        for index, doc in enumerate(result.docs, start=1):
-            source = doc.metadata.get("source", "Unknown source")
-            page = doc.metadata.get("page")
+            print()
+            print("Sources:")
+            for index, doc in enumerate(result.docs, start=1):
+                source = doc.metadata.get("source", "Unknown source")
+                page = doc.metadata.get("page")
 
-            if page:
-                print(f"{index}. {source}, page {page}")
-            else:
-                print(f"{index}. {source}")
+                if page:
+                    print(f"{index}. {source}, page {page}")
+                else:
+                    print(f"{index}. {source}")
+
+        except RagPipelineError as error:
+            print()
+            print("RAG Error:")
+            print(error.user_message)
 
         print("-" * 60)
 

@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from rag.config import DATA_DIR, DB_DIR
+from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
 from rag.utils import preview_text, format_source_label
 
@@ -136,34 +137,41 @@ if st.button("Ask"):
     elif not os.path.exists(DB_DIR):
         st.error("Vector database not found. Please click Rebuild Vector Database first.")
     else:
-        with st.spinner("Searching documents and generating answer..."):
-            result = answer_question(
-                question=question,
-                top_k=top_k
-            )
+        try:
+            with st.spinner("Searching documents and generating answer..."):
+                result = answer_question(
+                    question=question,
+                    top_k=top_k
+                )
 
-        st.subheader("Answer")
-        st.write(result.answer)
+            st.subheader("Answer")
+            st.write(result.answer)
 
-        st.subheader("Sources")
+            st.subheader("Sources")
 
-        if result.scored_docs:
-            for index, item in enumerate(result.scored_docs, start=1):
-                doc, score = item
+            if result.scored_docs:
+                for index, item in enumerate(result.scored_docs, start=1):
+                    doc, score = item
 
-                with st.expander(f"Source {index}: {format_source_label(doc, score)}"):
-                    st.write(preview_text(doc.page_content))
-        else:
-            st.write("No sources found.")
+                    with st.expander(f"Source {index}: {format_source_label(doc, score)}"):
+                        st.write(preview_text(doc.page_content))
+            else:
+                st.write("No sources found.")
 
-        if show_debug:
-            st.subheader("Retrieval Debug Panel")
+            if show_debug:
+                st.subheader("Retrieval Debug Panel")
 
-            st.write("This panel shows the chunks retrieved before Gemini generated the answer.")
+                st.write("This panel shows the chunks retrieved before Gemini generated the answer.")
 
-            for index, item in enumerate(result.scored_docs, start=1):
-                doc, score = item
+                for index, item in enumerate(result.scored_docs, start=1):
+                    doc, score = item
 
-                st.markdown(f"**Chunk {index}**")
-                st.write(format_source_label(doc, score))
-                st.code(preview_text(doc.page_content, max_chars=1500))
+                    st.markdown(f"**Chunk {index}**")
+                    st.write(format_source_label(doc, score))
+                    st.code(preview_text(doc.page_content, max_chars=1500))
+
+        except RagPipelineError as error:
+            st.error(error.user_message)
+
+            with st.expander("Technical details"):
+                st.code(error.technical_details)

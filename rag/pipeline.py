@@ -8,6 +8,7 @@ from langchain_chroma import Chroma
 
 from rag.config import DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
 from rag.embeddings import SafeGoogleEmbeddings
+from rag.errors import create_rag_error
 from rag.prompts import RAG_PROMPT_TEMPLATE
 from rag.utils import get_response_text
 
@@ -63,34 +64,38 @@ def build_rag_components():
 
 
 def answer_question(question, top_k=3):
-    vectorstore, llm, prompt = build_rag_components()
+    try:
+        vectorstore, llm, prompt = build_rag_components()
 
-    scored_docs = vectorstore.similarity_search_with_score(
-        question,
-        k=top_k
-    )
+        scored_docs = vectorstore.similarity_search_with_score(
+            question,
+            k=top_k
+        )
 
-    docs = [
-        doc
-        for doc, score in scored_docs
-    ]
+        docs = [
+            doc
+            for doc, score in scored_docs
+        ]
 
-    context = "\n\n".join(
-        doc.page_content for doc in docs
-    )
+        context = "\n\n".join(
+            doc.page_content for doc in docs
+        )
 
-    messages = prompt.format_messages(
-        context=context,
-        question=question
-    )
+        messages = prompt.format_messages(
+            context=context,
+            question=question
+        )
 
-    response = llm.invoke(messages)
-    answer = get_response_text(response)
+        response = llm.invoke(messages)
+        answer = get_response_text(response)
 
-    return RagResult(
-        question=question,
-        answer=answer,
-        docs=docs,
-        scored_docs=scored_docs,
-        context=context
-    )
+        return RagResult(
+            question=question,
+            answer=answer,
+            docs=docs,
+            scored_docs=scored_docs,
+            context=context
+        )
+
+    except Exception as error:
+        raise create_rag_error(error) from error
