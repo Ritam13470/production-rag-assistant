@@ -141,3 +141,26 @@ Example output:
 
 Passed 3 out of 3 tests.
 Evaluation status: SUCCESS
+
+## Shared RAG Pipeline
+
+The project uses a centralized RAG pipeline so the terminal app, Streamlit app, and evaluator all use the same retrieval and answer-generation logic.
+
+Pipeline files:
+
+rag/prompts.py     # stores the main RAG prompt
+rag/pipeline.py    # builds the vector store, LLM, prompt, and answer flow
+
+Main shared function:
+
+answer_question(question, top_k=3)
+
+This function returns a RagResult object containing:
+
+- question
+- answer
+- retrieved documents
+- scored retrieved documents
+- final context sent to the model
+
+This makes the project easier to maintain because future retrieval upgrades only need to be added in one place.
