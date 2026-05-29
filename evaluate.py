@@ -1,78 +1,8 @@
 import json
 
-from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_chroma import Chroma
-
-from rag.config import DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
-from rag.embeddings import SafeGoogleEmbeddings
-from rag.utils import get_response_text
-
-load_dotenv()
-
-
-PROMPT_TEMPLATE = """
-You are a careful and trustworthy RAG assistant.
-
-Answer the user's question using only the context below.
-
-Rules:
-1. If the answer is in the context, answer clearly.
-2. If the answer is not in the context, say: "I could not find that in the provided documents."
-3. Do not invent facts outside the context.
-4. Prefer a concise answer first, then add useful detail only if supported by the context.
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer:
-"""
-
+from rag.pipeline import answer_question
 
 REFUSAL_TEXT = "I could not find that in the provided documents."
-
-
-def build_rag_components():
-    embeddings = SafeGoogleEmbeddings(
-        model_name=EMBEDDING_MODEL
-    )
-
-    vectorstore = Chroma(
-        persist_directory=DB_DIR,
-        embedding_function=embeddings,
-        collection_name=COLLECTION_NAME
-    )
-
-    llm = ChatGoogleGenerativeAI(
-        model=CHAT_MODEL,
-        temperature=0
-    )
-
-    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-
-    return vectorstore, llm, prompt
-
-
-def ask_rag(question, vectorstore, llm, prompt, top_k=3):
-    docs = vectorstore.similarity_search(question, k=top_k)
-
-    context = "\n\n".join(
-        doc.page_content for doc in docs
-    )
-
-    messages = prompt.format_messages(
-        context=context,
-        question=question
-    )
-
-    response = llm.invoke(messages)
-    answer = get_response_text(response)
-
-    return answer, docs
 
 
 def answer_contains_keywords(answer, expected_keywords):
@@ -87,17 +17,29 @@ def answer_contains_keywords(answer, expected_keywords):
     return missing_keywords
 
 
-def evaluate_case(test_case, vectorstore, llm, prompt):
+def evaluate_case(test_case):
     question = test_case["question"]
     expected_keywords = test_case["expected_keywords"]
     should_answer = test_case["should_answer"]
 
-    answer, docs = ask_rag(
-        question=question,
-        vectorstore=vectorstore,
-        llm=llm,
-        prompt=prompt
-    )
+    try:
+        result = answer_question(
+            question=question,
+            top_k=3
+        )
+
+        answer = result.answer
+        source_count = len(result.docs)
+
+    except Exception as error:
+        return {
+            "question": question,
+            "answer": "",
+            "passed": False,
+            "reason": f"Evaluation could not run because the model call failed: {error}",
+            "source_count": 0,
+            "error": True
+        }
 
     if should_answer:
         missing_keywords = answer_contains_keywords(
@@ -124,7 +66,8 @@ def evaluate_case(test_case, vectorstore, llm, prompt):
         "answer": answer,
         "passed": passed,
         "reason": reason,
-        "source_count": len(docs)
+        "source_count": source_count,
+        "error": False
     }
 
 
@@ -134,22 +77,21 @@ def main():
     with open("eval_questions.json", "r", encoding="utf-8") as file:
         test_cases = json.load(file)
 
-    vectorstore, llm, prompt = build_rag_components()
-
     passed_count = 0
+    error_count = 0
 
     for index, test_case in enumerate(test_cases, start=1):
         print("-" * 70)
         print(f"Test {index}: {test_case['question']}")
 
         result = evaluate_case(
-            test_case=test_case,
-            vectorstore=vectorstore,
-            llm=llm,
-            prompt=prompt
+            test_case=test_case
         )
 
-        if result["passed"]:
+        if result["error"]:
+            error_count += 1
+            print("Result: ERROR")
+        elif result["passed"]:
             passed_count += 1
             print("Result: PASS")
         else:
@@ -157,13 +99,18 @@ def main():
 
         print(f"Reason: {result['reason']}")
         print(f"Sources retrieved: {result['source_count']}")
-        print("Answer:")
-        print(result["answer"])
+
+        if result["answer"]:
+            print("Answer:")
+            print(result["answer"])
 
     print("=" * 70)
     print(f"Passed {passed_count} out of {len(test_cases)} tests.")
+    print(f"Errors: {error_count}")
 
-    if passed_count == len(test_cases):
+    if error_count > 0:
+        print("Evaluation status: BLOCKED BY API ERROR OR QUOTA LIMIT")
+    elif passed_count == len(test_cases):
         print("Evaluation status: SUCCESS")
     else:
         print("Evaluation status: NEEDS IMPROVEMENT")

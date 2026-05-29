@@ -5,36 +5,11 @@ import sys
 import streamlit as st
 from dotenv import load_dotenv
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_chroma import Chroma
-
-from rag.config import DATA_DIR, DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
-from rag.embeddings import SafeGoogleEmbeddings
-from rag.utils import get_response_text, preview_text, format_source_label
+from rag.config import DATA_DIR, DB_DIR
+from rag.pipeline import answer_question
+from rag.utils import preview_text, format_source_label
 
 load_dotenv()
-
-
-PROMPT_TEMPLATE = """
-You are a careful and trustworthy RAG assistant.
-
-Answer the user's question using only the context below.
-
-Rules:
-1. If the answer is in the context, answer clearly.
-2. If the answer is not in the context, say: "I could not find that in the provided documents."
-3. Do not invent facts outside the context.
-4. Prefer a concise answer first, then add useful detail only if supported by the context.
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer:
-"""
 
 
 def save_uploaded_files(uploaded_files):
@@ -61,27 +36,6 @@ def rebuild_vector_database():
     )
 
     return result
-
-
-def load_rag_components():
-    embeddings = SafeGoogleEmbeddings(
-        model_name=EMBEDDING_MODEL
-    )
-
-    vectorstore = Chroma(
-        persist_directory=DB_DIR,
-        embedding_function=embeddings,
-        collection_name=COLLECTION_NAME
-    )
-
-    llm = ChatGoogleGenerativeAI(
-        model=CHAT_MODEL,
-        temperature=0
-    )
-
-    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-
-    return vectorstore, llm, prompt
 
 
 st.set_page_config(
@@ -183,37 +137,18 @@ if st.button("Ask"):
         st.error("Vector database not found. Please click Rebuild Vector Database first.")
     else:
         with st.spinner("Searching documents and generating answer..."):
-            vectorstore, llm, prompt = load_rag_components()
-
-            scored_docs = vectorstore.similarity_search_with_score(
-                question,
-                k=top_k
+            result = answer_question(
+                question=question,
+                top_k=top_k
             )
-
-            docs = [
-                doc
-                for doc, score in scored_docs
-            ]
-
-            context = "\n\n".join(
-                doc.page_content for doc in docs
-            )
-
-            messages = prompt.format_messages(
-                context=context,
-                question=question
-            )
-
-            response = llm.invoke(messages)
-            answer = get_response_text(response)
 
         st.subheader("Answer")
-        st.write(answer)
+        st.write(result.answer)
 
         st.subheader("Sources")
 
-        if scored_docs:
-            for index, item in enumerate(scored_docs, start=1):
+        if result.scored_docs:
+            for index, item in enumerate(result.scored_docs, start=1):
                 doc, score = item
 
                 with st.expander(f"Source {index}: {format_source_label(doc, score)}"):
@@ -226,7 +161,7 @@ if st.button("Ask"):
 
             st.write("This panel shows the chunks retrieved before Gemini generated the answer.")
 
-            for index, item in enumerate(scored_docs, start=1):
+            for index, item in enumerate(result.scored_docs, start=1):
                 doc, score = item
 
                 st.markdown(f"**Chunk {index}**")
