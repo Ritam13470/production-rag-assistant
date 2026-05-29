@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from rag.config import DB_DIR
 from rag.database_utils import clear_vector_database
+from rag.document_manager import delete_source_file
 from rag.document_stats import get_document_dashboard_stats
 from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
@@ -118,9 +119,51 @@ if uploaded_files:
         except ValueError as error:
             st.error(str(error))
 
-st.subheader("2. Manage Vector Database")
+st.subheader("2. Delete Uploaded Document")
 
-st.write("Rebuild the vector database after adding or changing files.")
+if stats["files"]:
+    file_names = [
+        file_info["name"]
+        for file_info in stats["files"]
+    ]
+
+    selected_file_name = st.selectbox(
+        "Choose a document to delete",
+        file_names
+    )
+
+    st.warning(
+        "Deleting a document removes it from the data folder only. "
+        "After deleting, rebuild the vector database so old chunks are removed from ChromaDB."
+    )
+
+    confirm_delete = st.checkbox(
+        f"I understand and want to delete {selected_file_name}"
+    )
+
+    if st.button("Delete Selected Document"):
+        if not confirm_delete:
+            st.warning("Please tick the confirmation checkbox before deleting the document.")
+        else:
+            try:
+                delete_result = delete_source_file(selected_file_name)
+
+                if delete_result["deleted"]:
+                    st.success(delete_result["message"])
+                    st.warning("Now rebuild the vector database to remove old chunks for this document.")
+                else:
+                    st.info(delete_result["message"])
+
+                st.info("Refresh the page to update the sidebar document list.")
+
+            except ValueError as error:
+                st.error(str(error))
+else:
+    st.info("No uploaded TXT/PDF documents are available to delete.")
+
+st.subheader("3. Manage Vector Database")
+
+st.write("Rebuild the vector database after adding, deleting, or changing files.")
 
 if st.button("Rebuild Vector Database"):
     with st.spinner("Rebuilding vector database. This may take a moment..."):
@@ -158,7 +201,7 @@ if st.button("Clear Vector Database"):
         except ValueError as error:
             st.error(str(error))
 
-st.subheader("3. Ask Questions")
+st.subheader("4. Ask Questions")
 
 question = st.text_input(
     "Ask a question",
