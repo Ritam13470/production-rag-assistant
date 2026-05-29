@@ -183,3 +183,21 @@ The Streamlit app shows a clean error message and hides technical details inside
 The terminal app prints a readable RAG error message instead of a long traceback.
 
 The evaluator reports API/quota errors as blocked evaluations instead of crashing.
+
+## Document Dashboard
+
+The Streamlit app includes a document dashboard in the sidebar.
+
+It shows:
+
+- Number of TXT/PDF files in the data folder
+- Number of chunks stored in ChromaDB
+- Total uploaded document size
+- Vector database status
+- Current document file list
+
+Related file:
+
+rag/document_stats.py   # collects document and vector database statistics
+
+This makes the app easier to inspect before asking questions.
