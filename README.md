@@ -222,3 +222,22 @@ Upload safety features:
 Example:
 
 my file (final)!!.PDF -> my_file_final.pdf
+
+## Vector Database Management
+
+The Streamlit app includes vector database management controls.
+
+Features:
+
+- Rebuild the ChromaDB vector database after adding or changing documents
+- Clear the generated vector database without deleting uploaded documents
+- Require confirmation before clearing the vector database
+- Show a safety warning explaining that uploaded files stay inside the data folder
+
+Related file:
+
+rag/database_utils.py   # safely clears only the generated vector database folder
+
+Important:
+
+The clear button only removes the generated chroma_db folder. It does not delete files inside the data folder.
