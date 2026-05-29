@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from rag.config import DATA_DIR, DB_DIR
+from rag.document_stats import get_document_dashboard_stats
 from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
 from rag.utils import preview_text, format_source_label
@@ -48,12 +49,33 @@ st.set_page_config(
 st.title("Production RAG Assistant")
 st.write("Upload TXT/PDF files, rebuild the vector database, and ask questions using Gemini, LangChain, and ChromaDB.")
 
+stats = get_document_dashboard_stats()
+
 with st.sidebar:
     st.header("Project Info")
     st.write("Vector DB: ChromaDB")
     st.write("Chat Model: Gemini 2.5 Flash")
     st.write("Embedding Model: Gemini Embedding")
     st.warning("For learning, upload sample documents only. Avoid private or sensitive files.")
+
+    st.divider()
+
+    st.header("Document Dashboard")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("Files", stats["file_count"])
+
+    with col2:
+        st.metric("Chunks", stats["chunk_count"])
+
+    st.metric("Total file size", f"{stats['total_size_kb']} KB")
+
+    if stats["chroma_exists"]:
+        st.success("Vector database found")
+    else:
+        st.error("Vector database not found")
 
     st.divider()
 
@@ -76,20 +98,14 @@ with st.sidebar:
 
     st.header("Current Files")
 
-    if os.path.exists(DATA_DIR):
-        files = [
-            file_name
-            for file_name in os.listdir(DATA_DIR)
-            if file_name.lower().endswith((".txt", ".pdf"))
-        ]
-
-        if files:
-            for file_name in files:
-                st.write(f"- {file_name}")
-        else:
-            st.write("No TXT/PDF files found.")
+    if stats["files"]:
+        for file_info in stats["files"]:
+            st.write(
+                f"- {file_info['name']} "
+                f"({file_info['type']}, {file_info['size_kb']} KB)"
+            )
     else:
-        st.write("Data folder does not exist yet.")
+        st.write("No TXT/PDF files found.")
 
 st.subheader("1. Upload Documents")
 
@@ -119,6 +135,7 @@ if st.button("Rebuild Vector Database"):
     if result.returncode == 0:
         st.success("Vector database rebuilt successfully.")
         st.code(result.stdout)
+        st.info("Refresh the page to update the sidebar dashboard stats.")
     else:
         st.error("Vector database rebuild failed.")
         st.code(result.stdout)
