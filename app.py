@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from rag.config import DB_DIR
+from rag.database_utils import clear_vector_database
 from rag.document_stats import get_document_dashboard_stats
 from rag.errors import RagPipelineError
 from rag.pipeline import answer_question
@@ -117,9 +118,9 @@ if uploaded_files:
         except ValueError as error:
             st.error(str(error))
 
-st.subheader("2. Rebuild Vector Database")
+st.subheader("2. Manage Vector Database")
 
-st.write("Click this after adding or changing files.")
+st.write("Rebuild the vector database after adding or changing files.")
 
 if st.button("Rebuild Vector Database"):
     with st.spinner("Rebuilding vector database. This may take a moment..."):
@@ -133,6 +134,29 @@ if st.button("Rebuild Vector Database"):
         st.error("Vector database rebuild failed.")
         st.code(result.stdout)
         st.code(result.stderr)
+
+st.warning("Clearing the vector database deletes only generated ChromaDB files. Your uploaded documents stay inside the data folder.")
+
+confirm_clear = st.checkbox(
+    "I understand and want to enable clearing the vector database"
+)
+
+if st.button("Clear Vector Database"):
+    if not confirm_clear:
+        st.warning("Please tick the confirmation checkbox before clearing the vector database.")
+    else:
+        try:
+            clear_result = clear_vector_database()
+
+            if clear_result["deleted"]:
+                st.success(clear_result["message"])
+            else:
+                st.info(clear_result["message"])
+
+            st.info("Refresh the page to update the sidebar dashboard stats.")
+
+        except ValueError as error:
+            st.error(str(error))
 
 st.subheader("3. Ask Questions")
 
