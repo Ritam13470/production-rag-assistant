@@ -164,3 +164,22 @@ This function returns a RagResult object containing:
 - final context sent to the model
 
 This makes the project easier to maintain because future retrieval upgrades only need to be added in one place.
+
+## Production Error Handling
+
+The project includes centralized RAG error handling in rag/errors.py.
+
+It converts raw technical errors into cleaner user-facing messages.
+
+Handled cases include:
+
+- Gemini quota or rate-limit errors
+- Missing, invalid, or unauthorized API key errors
+- Vector database loading errors
+- Unexpected RAG pipeline failures
+
+The Streamlit app shows a clean error message and hides technical details inside an expandable panel.
+
+The terminal app prints a readable RAG error message instead of a long traceback.
+
+The evaluator reports API/quota errors as blocked evaluations instead of crashing.
