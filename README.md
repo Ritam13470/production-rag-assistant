@@ -295,3 +295,18 @@ Responsibilities:
 - Return query history for display in the app
 
 This keeps app.py cleaner and prepares the project for future persistent history storage.
+
+## Streamlit UI Polish
+
+The Streamlit app includes a cleaner dashboard-style layout.
+
+Polish improvements:
+
+- Added a clearer app introduction
+- Added top workflow cards for upload, vector database management, and grounded Q&A
+- Improved section captions and helper text
+- Improved sidebar labels
+- Split vector database controls into Rebuild ChromaDB and Clear ChromaDB columns
+- Kept the existing RAG, upload, delete, history, and database logic unchanged
+
+This makes the app easier to understand and use while preserving the existing behavior.
