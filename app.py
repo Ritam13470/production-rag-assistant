@@ -10,6 +10,13 @@ from rag.database_utils import clear_vector_database
 from rag.document_manager import delete_source_file
 from rag.document_stats import get_document_dashboard_stats
 from rag.errors import RagPipelineError
+from rag.history import (
+    add_query_history_entry,
+    clear_query_history,
+    get_query_history,
+    get_query_history_count,
+    initialize_query_history
+)
 from rag.pipeline import answer_question
 from rag.upload_utils import save_uploaded_files
 from rag.utils import preview_text, format_source_label
@@ -27,42 +34,13 @@ def rebuild_vector_database():
     return result
 
 
-def initialize_query_history():
-    if "query_history" not in st.session_state:
-        st.session_state.query_history = []
-
-
-def add_query_history_entry(question, answer, scored_docs):
-    sources = []
-
-    for doc, score in scored_docs:
-        sources.append(
-            {
-                "source": doc.metadata.get("source", "Unknown source"),
-                "page": doc.metadata.get("page"),
-                "type": doc.metadata.get("type"),
-                "score": score,
-                "preview": preview_text(doc.page_content, max_chars=500)
-            }
-        )
-
-    st.session_state.query_history.insert(
-        0,
-        {
-            "question": question,
-            "answer": answer,
-            "sources": sources
-        }
-    )
-
-
 st.set_page_config(
     page_title="Production RAG Assistant",
     page_icon="??",
     layout="wide"
 )
 
-initialize_query_history()
+initialize_query_history(st.session_state)
 
 st.title("Production RAG Assistant")
 st.write("Upload TXT/PDF files, rebuild the vector database, and ask questions using Gemini, LangChain, and ChromaDB.")
@@ -116,10 +94,13 @@ with st.sidebar:
 
     st.header("Session History")
 
-    st.metric("Questions asked", len(st.session_state.query_history))
+    st.metric(
+        "Questions asked",
+        get_query_history_count(st.session_state)
+    )
 
     if st.button("Clear Query History"):
-        st.session_state.query_history = []
+        clear_query_history(st.session_state)
         st.success("Query history cleared.")
 
     st.divider()
@@ -263,6 +244,7 @@ if st.button("Ask"):
                 )
 
             add_query_history_entry(
+                session_state=st.session_state,
                 question=question,
                 answer=result.answer,
                 scored_docs=result.scored_docs
@@ -302,8 +284,10 @@ if st.button("Ask"):
 
 st.subheader("5. Query History")
 
-if st.session_state.query_history:
-    for index, history_item in enumerate(st.session_state.query_history, start=1):
+query_history = get_query_history(st.session_state)
+
+if query_history:
+    for index, history_item in enumerate(query_history, start=1):
         with st.expander(f"{index}. {history_item['question']}"):
             st.markdown("**Answer**")
             st.write(history_item["answer"])
