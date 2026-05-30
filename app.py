@@ -42,17 +42,40 @@ st.set_page_config(
 
 initialize_query_history(st.session_state)
 
-st.title("Production RAG Assistant")
-st.write("Upload TXT/PDF files, rebuild the vector database, and ask questions using Gemini, LangChain, and ChromaDB.")
-
 stats = get_document_dashboard_stats()
 
+st.title("Production RAG Assistant")
+st.caption("A document-based RAG dashboard built with Gemini, LangChain, ChromaDB, and Streamlit.")
+
+intro_col_1, intro_col_2, intro_col_3 = st.columns(3)
+
+with intro_col_1:
+    st.info("Upload TXT/PDF documents")
+
+with intro_col_2:
+    st.info("Build or manage the vector database")
+
+with intro_col_3:
+    st.info("Ask grounded questions with sources")
+
+st.markdown(
+    """
+    This app helps you upload documents, index them into ChromaDB, ask questions,
+    inspect retrieved sources, and review your session query history.
+    """
+)
+
 with st.sidebar:
-    st.header("Project Info")
+    st.header("Project Overview")
+
     st.write("Vector DB: ChromaDB")
     st.write("Chat Model: Gemini 2.5 Flash")
     st.write("Embedding Model: Gemini Embedding")
-    st.warning("For learning, upload sample documents only. Avoid private or sensitive files.")
+
+    st.warning(
+        "For learning, upload sample documents only. "
+        "Avoid private or sensitive files in cloud API-based apps."
+    )
 
     st.divider()
 
@@ -66,26 +89,31 @@ with st.sidebar:
     with col2:
         st.metric("Chunks", stats["chunk_count"])
 
-    st.metric("Total file size", f"{stats['total_size_kb']} KB")
+    st.metric("Total size", f"{stats['total_size_kb']} KB")
 
     if stats["chroma_exists"]:
         st.success("Vector database found")
     else:
         st.error("Vector database not found")
 
+    st.caption("Refresh the page after upload, delete, rebuild, or clear actions to update these stats.")
+
     st.divider()
 
     st.header("Retrieval Settings")
+
     top_k = st.slider(
-        "Number of chunks to retrieve",
+        "Chunks to retrieve",
         min_value=1,
         max_value=8,
-        value=3
+        value=3,
+        help="Higher values give Gemini more context, but may include less relevant chunks."
     )
 
     show_debug = st.checkbox(
         "Show retrieval debug panel",
-        value=True
+        value=True,
+        help="Shows the exact retrieved chunks used before Gemini generated the answer."
     )
 
     st.caption("Chroma distance score: lower usually means more similar.")
@@ -116,7 +144,10 @@ with st.sidebar:
     else:
         st.write("No TXT/PDF files found.")
 
+st.divider()
+
 st.subheader("1. Upload Documents")
+st.caption("Add TXT or PDF files to the data folder. Uploaded filenames are sanitized automatically.")
 
 uploaded_files = st.file_uploader(
     "Upload TXT or PDF files",
@@ -141,7 +172,10 @@ if uploaded_files:
         except ValueError as error:
             st.error(str(error))
 
+st.divider()
+
 st.subheader("2. Delete Uploaded Document")
+st.caption("Remove a TXT/PDF file from the data folder. Rebuild ChromaDB after deleting a document.")
 
 if stats["files"]:
     file_names = [
@@ -183,47 +217,64 @@ if stats["files"]:
 else:
     st.info("No uploaded TXT/PDF documents are available to delete.")
 
+st.divider()
+
 st.subheader("3. Manage Vector Database")
+st.caption("Rebuild or clear generated ChromaDB files. Uploaded documents stay inside the data folder.")
 
-st.write("Rebuild the vector database after adding, deleting, or changing files.")
+manage_col_1, manage_col_2 = st.columns(2)
 
-if st.button("Rebuild Vector Database"):
-    with st.spinner("Rebuilding vector database. This may take a moment..."):
-        result = rebuild_vector_database()
+with manage_col_1:
+    st.markdown("**Rebuild ChromaDB**")
+    st.write("Use this after adding, deleting, or changing documents.")
 
-    if result.returncode == 0:
-        st.success("Vector database rebuilt successfully.")
-        st.code(result.stdout)
-        st.info("Refresh the page to update the sidebar dashboard stats.")
-    else:
-        st.error("Vector database rebuild failed.")
-        st.code(result.stdout)
-        st.code(result.stderr)
+    if st.button("Rebuild Vector Database"):
+        with st.spinner("Rebuilding vector database. This may take a moment..."):
+            result = rebuild_vector_database()
 
-st.warning("Clearing the vector database deletes only generated ChromaDB files. Your uploaded documents stay inside the data folder.")
-
-confirm_clear = st.checkbox(
-    "I understand and want to enable clearing the vector database"
-)
-
-if st.button("Clear Vector Database"):
-    if not confirm_clear:
-        st.warning("Please tick the confirmation checkbox before clearing the vector database.")
-    else:
-        try:
-            clear_result = clear_vector_database()
-
-            if clear_result["deleted"]:
-                st.success(clear_result["message"])
-            else:
-                st.info(clear_result["message"])
-
+        if result.returncode == 0:
+            st.success("Vector database rebuilt successfully.")
+            st.code(result.stdout)
             st.info("Refresh the page to update the sidebar dashboard stats.")
+        else:
+            st.error("Vector database rebuild failed.")
+            st.code(result.stdout)
+            st.code(result.stderr)
 
-        except ValueError as error:
-            st.error(str(error))
+with manage_col_2:
+    st.markdown("**Clear ChromaDB**")
+    st.write("This deletes only generated vector database files.")
+
+    st.warning(
+        "Clearing the vector database deletes only generated ChromaDB files. "
+        "Your uploaded documents stay inside the data folder."
+    )
+
+    confirm_clear = st.checkbox(
+        "I understand and want to enable clearing the vector database"
+    )
+
+    if st.button("Clear Vector Database"):
+        if not confirm_clear:
+            st.warning("Please tick the confirmation checkbox before clearing the vector database.")
+        else:
+            try:
+                clear_result = clear_vector_database()
+
+                if clear_result["deleted"]:
+                    st.success(clear_result["message"])
+                else:
+                    st.info(clear_result["message"])
+
+                st.info("Refresh the page to update the sidebar dashboard stats.")
+
+            except ValueError as error:
+                st.error(str(error))
+
+st.divider()
 
 st.subheader("4. Ask Questions")
+st.caption("Ask questions grounded in the indexed documents. Answers should come only from retrieved context.")
 
 question = st.text_input(
     "Ask a question",
@@ -282,7 +333,10 @@ if st.button("Ask"):
             with st.expander("Technical details"):
                 st.code(error.technical_details)
 
+st.divider()
+
 st.subheader("5. Query History")
+st.caption("Review questions asked during the current Streamlit session.")
 
 query_history = get_query_history(st.session_state)
 
