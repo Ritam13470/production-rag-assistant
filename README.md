@@ -310,3 +310,24 @@ Polish improvements:
 - Kept the existing RAG, upload, delete, history, and database logic unchanged
 
 This makes the app easier to understand and use while preserving the existing behavior.
+
+## No-API Smoke Test
+
+The project includes a no-API smoke test that checks core project health without calling Gemini.
+
+Run it with:
+
+python smoke_test.py
+
+The smoke test checks:
+
+- Python syntax for app.py, ask.py, ingest.py, evaluate.py, and rag modules
+- Safe upload helper behavior
+- Uploaded document deletion safety
+- Vector database clear safety using a temporary folder
+- Document dashboard stats shape
+- Query history helper behavior
+
+Important:
+
+This smoke test does not call Gemini and does not spend API quota.
