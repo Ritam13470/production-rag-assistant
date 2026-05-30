@@ -331,3 +331,25 @@ The smoke test checks:
 Important:
 
 This smoke test does not call Gemini and does not spend API quota.
+
+## Startup Checklist
+
+The project includes a startup checklist script that verifies the local setup before running the app.
+
+Run it with:
+
+python startup_check.py
+
+The checklist verifies:
+
+- Python version
+- Required project files
+- Required project folders
+- Required rag module files
+- .env file presence
+- GOOGLE_API_KEY environment variable presence
+- Required package imports
+
+Important:
+
+This checklist does not call Gemini and does not spend API quota. It only verifies setup readiness.
