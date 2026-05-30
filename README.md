@@ -353,3 +353,21 @@ The checklist verifies:
 Important:
 
 This checklist does not call Gemini and does not spend API quota. It only verifies setup readiness.
+
+## Environment Setup
+
+The project includes a safe .env.example template.
+
+Setup steps:
+
+1. Copy .env.example to .env
+2. Replace GOOGLE_API_KEY=your_api_key_here with your real Gemini API key
+3. Never commit the real .env file
+
+Related file:
+
+.env.example   # safe environment variable template
+
+Important:
+
+The real .env file should stay private and should not be pushed to GitHub.
