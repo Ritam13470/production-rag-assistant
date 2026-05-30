@@ -261,3 +261,19 @@ rag/document_manager.py   # safely validates and deletes uploaded TXT/PDF files
 Important:
 
 After deleting a document, rebuild the vector database so old chunks from that document are removed from ChromaDB.
+
+## Query History
+
+The Streamlit app includes session-based query history.
+
+Features:
+
+- Tracks questions asked during the current Streamlit session
+- Shows previous questions and answers
+- Shows sources used for each previous answer
+- Shows source preview text and distance scores
+- Includes a Clear Query History button in the sidebar
+
+Important:
+
+Query history is stored only in Streamlit session state. It resets when the app session restarts.
