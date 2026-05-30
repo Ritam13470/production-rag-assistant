@@ -277,3 +277,21 @@ Features:
 Important:
 
 Query history is stored only in Streamlit session state. It resets when the app session restarts.
+
+## Query History Module
+
+Query history helper logic is separated into rag/history.py.
+
+Related file:
+
+rag/history.py   # manages Streamlit session query history helpers
+
+Responsibilities:
+
+- Initialize query history in Streamlit session state
+- Add question, answer, and source records to history
+- Count questions asked during the session
+- Clear query history
+- Return query history for display in the app
+
+This keeps app.py cleaner and prepares the project for future persistent history storage.
