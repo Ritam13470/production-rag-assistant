@@ -371,3 +371,19 @@ Related file:
 Important:
 
 The real .env file should stay private and should not be pushed to GitHub.
+
+## Demo Guide
+
+The project includes a dedicated demo guide for teacher, reviewer, or presentation use.
+
+Related file:
+
+DEMO_GUIDE.md   # safe no-API demo path, full Gemini demo path, troubleshooting, and presentation checklist
+
+Recommended safe demo commands:
+
+python smoke_test.py
+python startup_check.py
+streamlit run app.py
+
+Use the no-API demo path when Gemini quota is exhausted.
