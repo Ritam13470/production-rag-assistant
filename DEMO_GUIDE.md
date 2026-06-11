@@ -211,3 +211,19 @@ python smoke_test.py
 python startup_check.py
 
 If all three are clean or successful, the project is ready to demonstrate.
+
+---
+
+## 11. Live Demo URL
+
+Deployed Streamlit app:
+
+https://yothtq3mtgvquhd9ppafsa.streamlit.app/
+
+Verified demo question:
+
+What backend technologies does CharacterForge AI use?
+
+Verified answer:
+
+CharacterForge AI uses Node.js, Express, MongoDB, and Cloudinary for its backend.

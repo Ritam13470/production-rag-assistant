@@ -138,3 +138,24 @@ Before sharing a deployed link:
 8. Rebuild the vector database
 9. Ask a known question
 10. Confirm answer, sources, and query history work
+
+---
+
+## 9. Live Deployment
+
+Deployed Streamlit URL:
+
+https://yothtq3mtgvquhd9ppafsa.streamlit.app/
+
+Verified deployment behavior:
+
+- App loads successfully
+- Public sharing is enabled
+- ChromaDB rebuild works
+- Question answering works with Gemini
+- Sources are shown
+- Retrieval debug panel is shown
+
+Known limitation:
+
+Because this is a demo deployment using local app folders, uploaded files and generated ChromaDB files may not be permanent across cloud restarts.

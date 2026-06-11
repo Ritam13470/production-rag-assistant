@@ -403,3 +403,20 @@ Important deployment notes:
 - Set GOOGLE_API_KEY using the hosting platform secret manager
 - Local ChromaDB and uploaded files may not be permanent on free/cloud hosting
 - For long-term production, use persistent storage and a hosted vector database
+
+## Live Demo
+
+The deployed Streamlit demo is available at:
+
+https://yothtq3mtgvquhd9ppafsa.streamlit.app/
+
+Deployment status:
+
+- Streamlit Community Cloud deployment works
+- Vector database rebuild works on the deployed app
+- Grounded question answering works
+- Sources and retrieval debug panel work
+
+Note:
+
+This is a demo deployment. Uploaded files and local ChromaDB files may not be permanent on free/cloud hosting.
