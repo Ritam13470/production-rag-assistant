@@ -387,3 +387,19 @@ python startup_check.py
 streamlit run app.py
 
 Use the no-API demo path when Gemini quota is exhausted.
+
+## Deployment Guide
+
+The project includes a deployment readiness guide for preparing the Streamlit app for demo hosting.
+
+Related file:
+
+DEPLOYMENT.md   # deployment safety rules, Streamlit/Render notes, environment variables, and deployment checklist
+
+Important deployment notes:
+
+- Never commit the real .env file
+- Never commit .streamlit/secrets.toml
+- Set GOOGLE_API_KEY using the hosting platform secret manager
+- Local ChromaDB and uploaded files may not be permanent on free/cloud hosting
+- For long-term production, use persistent storage and a hosted vector database
