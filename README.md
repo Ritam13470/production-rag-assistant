@@ -1,422 +1,114 @@
 # Production RAG Assistant
 
-A beginner-friendly Retrieval-Augmented Generation app built with Python, LangChain, ChromaDB, and Google Gemini.
+This is a Streamlit-based RAG dashboard for uploading TXT/PDF documents, indexing them with ChromaDB, and asking grounded questions using Gemini.
 
-The app reads TXT and PDF files from the data folder, converts them into searchable chunks, stores them in a local Chroma vector database, and answers questions using only the retrieved document context.
+Live demo: https://yothtq3mtgvquhd9ppafsa.streamlit.app/
+
+## What It Does
+
+The app lets you upload documents, rebuild a local vector database, ask questions against the indexed content, and inspect the retrieved sources behind each answer.
+
+It is meant as a practical RAG demo and learning project, not a long-term document storage system.
 
 ## Features
 
-- Read TXT files
-- Read PDF files
-- Split documents into chunks
-- Create embeddings using Gemini
-- Store vectors locally with ChromaDB
-- Ask questions from the terminal
-- Show source files for retrieved context
-- Refuse to answer when information is not found in the documents
+- Upload TXT and PDF files from the browser
+- Sanitize uploaded filenames before saving
+- Index documents into ChromaDB
+- Ask questions using a shared RAG pipeline
+- Show retrieved sources, previews, and distance scores
+- Rebuild or clear the generated vector database
+- Delete uploaded documents safely
+- Keep session-only query history
+- Run basic local health checks without spending Gemini quota
 
 ## Tech Stack
 
 - Python
+- Streamlit
 - LangChain
 - ChromaDB
-- Google Gemini API
+- Google Gemini
 - pypdf
 - python-dotenv
 
-## Setup
+## Local Setup
 
 Create and activate a virtual environment:
 
+```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
 
 Install dependencies:
 
+```powershell
 pip install -r requirements.txt
+```
 
-Create a .env file:
+Create a local `.env` file from the safe template:
 
+```text
 GOOGLE_API_KEY=your_google_gemini_api_key_here
+```
 
-## Usage
+Keep the real `.env` private. It is ignored by Git and should not be committed. The files `.env.example` and `.streamlit/secrets.example.toml` are safe templates only.
 
-Add TXT or PDF files inside the data folder.
+## Environment Variables
 
-Create the vector database:
+`GOOGLE_API_KEY` is required for Gemini embeddings and answer generation.
 
-python ingest.py
+For local runs, put it in `.env`. For hosted deployments, set it through the hosting platform's secret manager instead of committing it to the repo.
 
-Ask questions:
+## Run Locally
 
-python ask.py
+Start the Streamlit app:
 
-Type exit to quit.
-
-## Notes
-
-The .env, .venv, and chroma_db folders are ignored by Git so secrets and generated files are not uploaded to GitHub.
-
-## Web UI
-
-This project also includes a simple Streamlit web interface.
-
-Run the web app:
-
+```powershell
 streamlit run app.py
+```
 
 Then open the local URL shown in the terminal, usually:
 
+```text
 http://localhost:8501
+```
 
-In the browser, type a question and click Ask.
+You can also use the terminal flow:
 
-## Browser Upload Workflow
+```powershell
+python ingest.py
+python ask.py
+```
 
-The Streamlit app supports uploading documents directly from the browser.
+## Useful Checks
 
-Steps:
+Run these before a demo or after changing setup-related files:
 
-1. Run the web app:
-
-streamlit run app.py
-
-2. Upload one or more TXT or PDF files.
-
-3. Click Save Uploaded Files.
-
-4. Click Rebuild Vector Database.
-
-5. Ask questions from the uploaded documents.
-
-Important: For learning, use sample documents only. Avoid uploading private or sensitive documents to cloud API-based apps.
-
-## Better RAG Quality Tools
-
-The app includes retrieval debugging tools to make answers more transparent.
-
-Features:
-
-- Choose how many chunks to retrieve using the sidebar slider.
-- View source previews used to generate the answer.
-- See Chroma distance scores for retrieved chunks.
-- Open the Retrieval Debug Panel to inspect the exact context sent to Gemini.
-
-These tools help debug common RAG problems such as weak retrieval, irrelevant chunks, missing context, and hallucinated answers.
-
-## Project Architecture
-
-The project now separates reusable RAG logic into a small rag package.
-
-rag/
-|-- __init__.py
-|-- config.py       # shared paths, collection name, and model names
-|-- embeddings.py   # safe Gemini embedding wrapper
-|-- utils.py        # response parsing, source formatting, and text previews
-
-Main app files:
-
-ingest.py   # loads TXT/PDF files and rebuilds ChromaDB
-ask.py      # terminal-based RAG assistant
-app.py      # Streamlit web UI with upload, re-index, sources, and debug panel
-
-This structure keeps the project easier to maintain and prepares it for future advanced RAG features.
-
-## RAG Evaluation
-
-The project includes a basic evaluation script for testing answer quality.
-
-Evaluation files:
-
-eval_questions.json   # test questions, expected keywords, and refusal checks
-evaluate.py           # runs the test cases against the RAG pipeline
-
-Run evaluation:
-
-python evaluate.py
-
-The evaluator checks whether answers contain expected keywords and whether the assistant correctly refuses to answer when the document does not contain the answer.
-
-Example output:
-
-Passed 3 out of 3 tests.
-Evaluation status: SUCCESS
-
-## Shared RAG Pipeline
-
-The project uses a centralized RAG pipeline so the terminal app, Streamlit app, and evaluator all use the same retrieval and answer-generation logic.
-
-Pipeline files:
-
-rag/prompts.py     # stores the main RAG prompt
-rag/pipeline.py    # builds the vector store, LLM, prompt, and answer flow
-
-Main shared function:
-
-answer_question(question, top_k=3)
-
-This function returns a RagResult object containing:
-
-- question
-- answer
-- retrieved documents
-- scored retrieved documents
-- final context sent to the model
-
-This makes the project easier to maintain because future retrieval upgrades only need to be added in one place.
-
-## Production Error Handling
-
-The project includes centralized RAG error handling in rag/errors.py.
-
-It converts raw technical errors into cleaner user-facing messages.
-
-Handled cases include:
-
-- Gemini quota or rate-limit errors
-- Missing, invalid, or unauthorized API key errors
-- Vector database loading errors
-- Unexpected RAG pipeline failures
-
-The Streamlit app shows a clean error message and hides technical details inside an expandable panel.
-
-The terminal app prints a readable RAG error message instead of a long traceback.
-
-The evaluator reports API/quota errors as blocked evaluations instead of crashing.
-
-## Document Dashboard
-
-The Streamlit app includes a document dashboard in the sidebar.
-
-It shows:
-
-- Number of TXT/PDF files in the data folder
-- Number of chunks stored in ChromaDB
-- Total uploaded document size
-- Vector database status
-- Current document file list
-
-Related file:
-
-rag/document_stats.py   # collects document and vector database statistics
-
-This makes the app easier to inspect before asking questions.
-
-## Safe Upload Handling
-
-The Streamlit app uses safe upload handling for TXT and PDF files.
-
-Related file:
-
-rag/upload_utils.py   # sanitizes uploaded filenames and prevents unsafe paths
-
-Upload safety features:
-
-- Allows only TXT and PDF files
-- Removes unsafe path parts such as ../
-- Cleans spaces and special characters from filenames
-- Converts file extensions to lowercase
-- Prevents accidental overwrites by creating unique filenames
-- Shows the original filename and the saved filename after upload
-
-Example:
-
-my file (final)!!.PDF -> my_file_final.pdf
-
-## Vector Database Management
-
-The Streamlit app includes vector database management controls.
-
-Features:
-
-- Rebuild the ChromaDB vector database after adding or changing documents
-- Clear the generated vector database without deleting uploaded documents
-- Require confirmation before clearing the vector database
-- Show a safety warning explaining that uploaded files stay inside the data folder
-
-Related file:
-
-rag/database_utils.py   # safely clears only the generated vector database folder
-
-Important:
-
-The clear button only removes the generated chroma_db folder. It does not delete files inside the data folder.
-
-## Uploaded Document Deletion
-
-The Streamlit app supports deleting individual uploaded documents from the data folder.
-
-Features:
-
-- Choose a TXT/PDF document from a dropdown
-- Require confirmation before deleting the selected document
-- Delete only safe files directly inside the data folder
-- Reject path-style filenames
-- Show a reminder to rebuild the vector database after deleting a document
-
-Related file:
-
-rag/document_manager.py   # safely validates and deletes uploaded TXT/PDF files
-
-Important:
-
-After deleting a document, rebuild the vector database so old chunks from that document are removed from ChromaDB.
-
-## Query History
-
-The Streamlit app includes session-based query history.
-
-Features:
-
-- Tracks questions asked during the current Streamlit session
-- Shows previous questions and answers
-- Shows sources used for each previous answer
-- Shows source preview text and distance scores
-- Includes a Clear Query History button in the sidebar
-
-Important:
-
-Query history is stored only in Streamlit session state. It resets when the app session restarts.
-
-## Query History Module
-
-Query history helper logic is separated into rag/history.py.
-
-Related file:
-
-rag/history.py   # manages Streamlit session query history helpers
-
-Responsibilities:
-
-- Initialize query history in Streamlit session state
-- Add question, answer, and source records to history
-- Count questions asked during the session
-- Clear query history
-- Return query history for display in the app
-
-This keeps app.py cleaner and prepares the project for future persistent history storage.
-
-## Streamlit UI Polish
-
-The Streamlit app includes a cleaner dashboard-style layout.
-
-Polish improvements:
-
-- Added a clearer app introduction
-- Added top workflow cards for upload, vector database management, and grounded Q&A
-- Improved section captions and helper text
-- Improved sidebar labels
-- Split vector database controls into Rebuild ChromaDB and Clear ChromaDB columns
-- Kept the existing RAG, upload, delete, history, and database logic unchanged
-
-This makes the app easier to understand and use while preserving the existing behavior.
-
-## No-API Smoke Test
-
-The project includes a no-API smoke test that checks core project health without calling Gemini.
-
-Run it with:
-
-python smoke_test.py
-
-The smoke test checks:
-
-- Python syntax for app.py, ask.py, ingest.py, evaluate.py, and rag modules
-- Safe upload helper behavior
-- Uploaded document deletion safety
-- Vector database clear safety using a temporary folder
-- Document dashboard stats shape
-- Query history helper behavior
-
-Important:
-
-This smoke test does not call Gemini and does not spend API quota.
-
-## Startup Checklist
-
-The project includes a startup checklist script that verifies the local setup before running the app.
-
-Run it with:
-
-python startup_check.py
-
-The checklist verifies:
-
-- Python version
-- Required project files
-- Required project folders
-- Required rag module files
-- .env file presence
-- GOOGLE_API_KEY environment variable presence
-- Required package imports
-
-Important:
-
-This checklist does not call Gemini and does not spend API quota. It only verifies setup readiness.
-
-## Environment Setup
-
-The project includes a safe .env.example template.
-
-Setup steps:
-
-1. Copy .env.example to .env
-2. Replace GOOGLE_API_KEY=your_api_key_here with your real Gemini API key
-3. Never commit the real .env file
-
-Related file:
-
-.env.example   # safe environment variable template
-
-Important:
-
-The real .env file should stay private and should not be pushed to GitHub.
-
-## Demo Guide
-
-The project includes a dedicated demo guide for teacher, reviewer, or presentation use.
-
-Related file:
-
-DEMO_GUIDE.md   # safe no-API demo path, full Gemini demo path, troubleshooting, and presentation checklist
-
-Recommended safe demo commands:
-
+```powershell
 python smoke_test.py
 python startup_check.py
-streamlit run app.py
+```
 
-Use the no-API demo path when Gemini quota is exhausted.
+`smoke_test.py` checks core project health without calling Gemini. `startup_check.py` checks whether the local environment looks ready to run.
 
-## Deployment Guide
+## Deployment Note
 
-The project includes a deployment readiness guide for preparing the Streamlit app for demo hosting.
+The deployed Streamlit app is demo-oriented. Set `GOOGLE_API_KEY` as a deployment secret, and do not upload private or sensitive documents to cloud API-based demos.
 
-Related file:
+For more deployment details, see `DEPLOYMENT.md`. For demo flow notes, see `DEMO_GUIDE.md`.
 
-DEPLOYMENT.md   # deployment safety rules, Streamlit/Render notes, environment variables, and deployment checklist
+## Known Limitation
 
-Important deployment notes:
+Streamlit Community Cloud is friendly for demos, but uploaded files and the local ChromaDB folder may not be permanent across cloud restarts. For long-running use, move uploaded files and vector storage to persistent services.
 
-- Never commit the real .env file
-- Never commit .streamlit/secrets.toml
-- Set GOOGLE_API_KEY using the hosting platform secret manager
-- Local ChromaDB and uploaded files may not be permanent on free/cloud hosting
-- For long-term production, use persistent storage and a hosted vector database
+## Project Files
 
-## Live Demo
-
-The deployed Streamlit demo is available at:
-
-https://yothtq3mtgvquhd9ppafsa.streamlit.app/
-
-Deployment status:
-
-- Streamlit Community Cloud deployment works
-- Vector database rebuild works on the deployed app
-- Grounded question answering works
-- Sources and retrieval debug panel work
-
-Note:
-
-This is a demo deployment. Uploaded files and local ChromaDB files may not be permanent on free/cloud hosting.
+- `app.py` - Streamlit dashboard
+- `ingest.py` - builds the ChromaDB vector database
+- `ask.py` - terminal question-answering flow
+- `evaluate.py` - small RAG evaluation runner
+- `smoke_test.py` - no-API project health check
+- `startup_check.py` - local setup readiness check
+- `rag/` - shared RAG pipeline, prompts, helpers, upload safety, history, and document utilities

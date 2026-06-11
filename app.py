@@ -278,7 +278,7 @@ st.caption("Ask questions grounded in the indexed documents. Answers should come
 
 question = st.text_input(
     "Ask a question",
-    placeholder="Example: What backend technologies does CharacterForge AI use?"
+    placeholder="Type your question here"
 )
 
 if st.button("Ask"):
