@@ -72,11 +72,6 @@ with st.sidebar:
     st.write("Chat Model: Gemini 2.5 Flash")
     st.write("Embedding Model: Gemini Embedding")
 
-    st.warning(
-        "For learning, upload sample documents only. "
-        "Avoid private or sensitive files in cloud API-based apps."
-    )
-
     st.divider()
 
     st.header("Document Dashboard")
