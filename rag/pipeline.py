@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 
 from rag.config import DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
+from rag.database_utils import reset_chroma_client_cache
 from rag.embeddings import SafeGoogleEmbeddings
 from rag.errors import create_rag_error
 from rag.prompts import RAG_PROMPT_TEMPLATE
@@ -25,6 +26,8 @@ class RagResult:
 
 
 def build_vectorstore():
+    reset_chroma_client_cache()
+
     embeddings = SafeGoogleEmbeddings(
         model_name=EMBEDDING_MODEL
     )

@@ -1,10 +1,18 @@
 import os
 import shutil
 
+from chromadb.api.shared_system_client import SharedSystemClient
+
 from rag.config import DATA_DIR, DB_DIR
 
 
+def reset_chroma_client_cache():
+    SharedSystemClient.clear_system_cache()
+
+
 def clear_vector_database(db_dir=DB_DIR):
+    reset_chroma_client_cache()
+
     normalized_db_dir = os.path.normpath(db_dir)
     absolute_db_dir = os.path.abspath(normalized_db_dir)
     absolute_data_dir = os.path.abspath(DATA_DIR)
@@ -30,6 +38,7 @@ def clear_vector_database(db_dir=DB_DIR):
         }
 
     shutil.rmtree(normalized_db_dir)
+    reset_chroma_client_cache()
 
     return {
         "deleted": True,

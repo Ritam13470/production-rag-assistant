@@ -3,6 +3,7 @@ import os
 import chromadb
 
 from rag.config import DATA_DIR, DB_DIR, COLLECTION_NAME
+from rag.database_utils import reset_chroma_client_cache
 
 
 def get_file_size_kb(file_path):
@@ -52,6 +53,8 @@ def get_chroma_chunk_count():
         return 0
 
     try:
+        reset_chroma_client_cache()
+
         client = chromadb.PersistentClient(
             path=DB_DIR
         )
