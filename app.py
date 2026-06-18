@@ -9,7 +9,7 @@ from rag.config import DB_DIR
 from rag.database_utils import clear_vector_database
 from rag.document_manager import delete_source_file
 from rag.document_stats import get_document_dashboard_stats
-from rag.errors import RagPipelineError
+from rag.errors import RagPipelineError, create_rag_error
 from rag.history import (
     add_query_history_entry,
     clear_query_history,
@@ -32,6 +32,19 @@ def rebuild_vector_database():
     )
 
     return result
+
+
+def create_rebuild_error(result):
+    error_text = "\n".join(
+        part for part in [
+            result.stdout or "",
+            result.stderr or "",
+            f"ingest.py exited with code {result.returncode}"
+        ]
+        if part.strip()
+    )
+
+    return create_rag_error(RuntimeError(error_text))
 
 
 st.set_page_config(
@@ -232,9 +245,19 @@ with manage_col_1:
             st.code(result.stdout)
             st.info("Refresh the page to update the sidebar dashboard stats.")
         else:
-            st.error("Vector database rebuild failed.")
-            st.code(result.stdout)
-            st.code(result.stderr)
+            rebuild_error = create_rebuild_error(result)
+
+            st.error(rebuild_error.user_message)
+            st.caption(
+                "The app is still running. Wait a minute and try again, "
+                "or use a smaller document if the file is very large."
+            )
+
+            with st.expander("Rebuild output"):
+                if result.stdout:
+                    st.code(result.stdout)
+
+                st.write(f"Exit code: {result.returncode}")
 
 with manage_col_2:
     st.markdown("**Clear ChromaDB**")
