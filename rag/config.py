@@ -4,3 +4,5 @@ COLLECTION_NAME = "rag_documents"
 
 EMBEDDING_MODEL = "gemini-embedding-2-preview"
 CHAT_MODEL = "gemini-2.5-flash"
+
+MAX_INGEST_CHUNKS = 100

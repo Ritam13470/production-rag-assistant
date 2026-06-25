@@ -7,7 +7,13 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 
-from rag.config import DATA_DIR, DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL
+from rag.config import (
+    DATA_DIR,
+    DB_DIR,
+    COLLECTION_NAME,
+    EMBEDDING_MODEL,
+    MAX_INGEST_CHUNKS
+)
 from rag.embeddings import SafeGoogleEmbeddings
 
 load_dotenv()
@@ -85,7 +91,18 @@ def main():
 
     chunks = splitter.split_documents(documents)
 
-    print(f"Created chunks: {len(chunks)}")
+    chunk_count = len(chunks)
+
+    print(f"Created chunks: {chunk_count}")
+    print(f"Configured chunk safety limit: {MAX_INGEST_CHUNKS}")
+
+    if chunk_count > MAX_INGEST_CHUNKS:
+        raise RuntimeError(
+            "DOCUMENT_CHUNK_LIMIT_EXCEEDED: "
+            f"The uploaded documents created {chunk_count} chunks, "
+            f"which exceeds the configured safety limit of {MAX_INGEST_CHUNKS}. "
+            "Use fewer or smaller documents and rebuild again."
+        )
 
     if os.path.exists(DB_DIR):
         print("Removing old Chroma database...")

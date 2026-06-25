@@ -11,6 +11,18 @@ def create_rag_error(error):
     lower_error_text = error_text.lower()
 
     if (
+        "document_chunk_limit_exceeded" in lower_error_text
+        or "chunk safety limit" in lower_error_text
+    ):
+        return RagPipelineError(
+            user_message=(
+                "The uploaded documents are too large for this learning/demo deployment. "
+                "Please use fewer or smaller documents, then rebuild the vector database."
+            ),
+            technical_details=error_text
+        )
+
+    if (
         "resource_exhausted" in lower_error_text
         or "quota" in lower_error_text
         or "rate limit" in lower_error_text
