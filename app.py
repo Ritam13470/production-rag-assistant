@@ -114,7 +114,7 @@ with st.sidebar:
         "Chunks to retrieve",
         min_value=1,
         max_value=8,
-        value=3,
+        value=5,
         help="Higher values give Gemini more context, but may include less relevant chunks."
     )
 
