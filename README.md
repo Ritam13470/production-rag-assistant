@@ -15,7 +15,12 @@ It is meant as a practical RAG demo and learning project, not a long-term docume
 - Upload TXT and PDF files from the browser
 - Sanitize uploaded filenames before saving
 - Index documents into ChromaDB
+- Stop oversized ingestion before Gemini embeddings are called
+- Preserve the current vector database when the document safety limit is exceeded
+- Show friendly quota and rate-limit errors instead of raw tracebacks
+- Reset Chroma client state so deleted or replaced documents are not retrieved again
 - Ask questions using a shared RAG pipeline
+- Retrieve five chunks by default, with an adjustable retrieval slider
 - Show retrieved sources, previews, and distance scores
 - Rebuild or clear the generated vector database
 - Delete uploaded documents safely
@@ -102,6 +107,8 @@ For more deployment details, see `DEPLOYMENT.md`. For demo flow notes, see `DEMO
 ## Known Limitation
 
 Streamlit Community Cloud is friendly for demos, but uploaded files and the local ChromaDB folder may not be permanent across cloud restarts. For long-running use, move uploaded files and vector storage to persistent services.
+
+To reduce free-tier embedding failures, ingestion stops when the uploaded documents create more than 100 chunks. This is a project safety limit configured in `rag/config.py`, not a guarantee of Gemini API quota availability.
 
 ## Project Files
 
