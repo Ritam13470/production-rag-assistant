@@ -4,6 +4,7 @@ import py_compile
 import shutil
 from pathlib import Path
 
+from rag.config import read_provider_name
 from rag.database_utils import clear_vector_database
 from rag.errors import create_rag_error
 from rag.document_manager import delete_source_file
@@ -16,6 +17,7 @@ from rag.history import (
     initialize_query_history
 )
 from rag.observability import get_langsmith_status
+from rag.providers import get_provider_status
 from rag.upload_utils import sanitize_file_name, save_uploaded_files
 
 
@@ -386,6 +388,58 @@ def test_langsmith_observability_defaults():
     print("OK: LangSmith observability defaults")
 
 
+
+def test_provider_config_defaults():
+    print("Testing provider configuration defaults...")
+
+    original_test_provider = os.environ.get("TEST_PROVIDER")
+
+    try:
+        os.environ.pop("TEST_PROVIDER", None)
+
+        assert read_provider_name(
+            "TEST_PROVIDER",
+            "gemini",
+            {"gemini"}
+        ) == "gemini"
+
+        os.environ["TEST_PROVIDER"] = "GEMINI"
+
+        assert read_provider_name(
+            "TEST_PROVIDER",
+            "gemini",
+            {"gemini"}
+        ) == "gemini"
+
+        os.environ["TEST_PROVIDER"] = "groq"
+
+        try:
+            read_provider_name(
+                "TEST_PROVIDER",
+                "gemini",
+                {"gemini"}
+            )
+            raise AssertionError("Unsupported provider was not rejected.")
+        except ValueError as error:
+            assert "Unsupported TEST_PROVIDER" in str(error)
+            assert "gemini" in str(error)
+
+        status = get_provider_status()
+
+        assert status["chat_provider"] == "gemini"
+        assert status["embedding_provider"] == "gemini"
+        assert status["chat_model"]
+        assert status["embedding_model"]
+
+    finally:
+        if original_test_provider is None:
+            os.environ.pop("TEST_PROVIDER", None)
+        else:
+            os.environ["TEST_PROVIDER"] = original_test_provider
+
+    print("OK: provider configuration defaults")
+
+
 def main():
     print("Starting no-API smoke test...")
     print("=" * 60)
@@ -399,6 +453,7 @@ def main():
     test_rag_error_classification()
     test_large_document_guard_preserves_database()
     test_langsmith_observability_defaults()
+    test_provider_config_defaults()
 
     print("=" * 60)
     print("Smoke test passed successfully.")

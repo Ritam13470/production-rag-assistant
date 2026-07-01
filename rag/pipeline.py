@@ -3,12 +3,11 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 
-from rag.config import DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL, CHAT_MODEL
+from rag.config import DB_DIR, COLLECTION_NAME
 from rag.database_utils import reset_chroma_client_cache
-from rag.embeddings import SafeGoogleEmbeddings
+from rag.providers import build_chat_model, build_embedding_model
 from rag.errors import create_rag_error
 from rag.prompts import RAG_PROMPT_TEMPLATE
 from rag.utils import get_response_text
@@ -28,9 +27,7 @@ class RagResult:
 def build_vectorstore():
     reset_chroma_client_cache()
 
-    embeddings = SafeGoogleEmbeddings(
-        model_name=EMBEDDING_MODEL
-    )
+    embeddings = build_embedding_model()
 
     vectorstore = Chroma(
         persist_directory=DB_DIR,
@@ -42,10 +39,7 @@ def build_vectorstore():
 
 
 def build_llm():
-    llm = ChatGoogleGenerativeAI(
-        model=CHAT_MODEL,
-        temperature=0
-    )
+    llm = build_chat_model()
 
     return llm
 

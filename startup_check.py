@@ -34,6 +34,7 @@ REQUIRED_RAG_FILES = [
     "rag/observability.py",
     "rag/pipeline.py",
     "rag/prompts.py",
+    "rag/providers.py",
     "rag/upload_utils.py",
     "rag/utils.py"
 ]
