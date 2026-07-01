@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from rag.database_utils import clear_vector_database
+from rag.errors import create_rag_error
 from rag.document_manager import delete_source_file
 from rag.document_stats import get_document_dashboard_stats
 from rag.history import (
@@ -207,6 +208,117 @@ def test_query_history_helpers():
     print("OK: query history helpers")
 
 
+def test_rag_error_classification():
+    print("Testing RAG error classification...")
+
+    large_document_error = create_rag_error(
+        RuntimeError(
+            "DOCUMENT_CHUNK_LIMIT_EXCEEDED: "
+            "The uploaded documents created 200 chunks, "
+            "which exceeds the configured chunk safety limit."
+        )
+    )
+
+    assert "too large" in large_document_error.user_message
+    assert "DOCUMENT_CHUNK_LIMIT_EXCEEDED" in large_document_error.technical_details
+
+    quota_error = create_rag_error(
+        RuntimeError(
+            "429 RESOURCE_EXHAUSTED: Gemini API quota was reached."
+        )
+    )
+
+    assert "quota or rate limit" in quota_error.user_message
+    assert "RESOURCE_EXHAUSTED" in quota_error.technical_details
+
+    print("OK: RAG error classification")
+
+
+def test_large_document_guard_preserves_database():
+    print("Testing large document guard preserves database...")
+
+    import ingest
+
+    test_db_dir = "tmp_smoke_existing_chroma"
+
+    if os.path.exists(test_db_dir):
+        shutil.rmtree(test_db_dir)
+
+    os.makedirs(test_db_dir, exist_ok=True)
+
+    marker_file = os.path.join(test_db_dir, "existing_marker.txt")
+
+    with open(marker_file, "w", encoding="utf-8") as file:
+        file.write("existing database content")
+
+    calls = {
+        "embeddings": False,
+        "chroma": False
+    }
+
+    original_load_documents = ingest.load_documents
+    original_max_chunks = ingest.MAX_INGEST_CHUNKS
+    original_db_dir = ingest.DB_DIR
+    original_splitter = ingest.RecursiveCharacterTextSplitter
+    original_embeddings = ingest.SafeGoogleEmbeddings
+    original_chroma = ingest.Chroma
+
+    class FakeSplitter:
+        def __init__(self, chunk_size, chunk_overlap):
+            self.chunk_size = chunk_size
+            self.chunk_overlap = chunk_overlap
+
+        def split_documents(self, documents):
+            return [
+                FakeDocument("chunk one", {"source": "data/large.txt"}),
+                FakeDocument("chunk two", {"source": "data/large.txt"})
+            ]
+
+    class FailingEmbeddings:
+        def __init__(self, model_name):
+            calls["embeddings"] = True
+            raise AssertionError("Embeddings should not be created when guard fails.")
+
+    class FailingChroma:
+        @staticmethod
+        def from_documents(*args, **kwargs):
+            calls["chroma"] = True
+            raise AssertionError("Chroma should not be rebuilt when guard fails.")
+
+    try:
+        ingest.load_documents = lambda: [
+            FakeDocument("large document", {"source": "data/large.txt"})
+        ]
+        ingest.MAX_INGEST_CHUNKS = 1
+        ingest.DB_DIR = test_db_dir
+        ingest.RecursiveCharacterTextSplitter = FakeSplitter
+        ingest.SafeGoogleEmbeddings = FailingEmbeddings
+        ingest.Chroma = FailingChroma
+
+        try:
+            ingest.main()
+            raise AssertionError("Large document guard did not stop ingestion.")
+        except RuntimeError as error:
+            assert "DOCUMENT_CHUNK_LIMIT_EXCEEDED" in str(error)
+
+        assert os.path.exists(marker_file)
+        assert calls["embeddings"] is False
+        assert calls["chroma"] is False
+
+    finally:
+        ingest.load_documents = original_load_documents
+        ingest.MAX_INGEST_CHUNKS = original_max_chunks
+        ingest.DB_DIR = original_db_dir
+        ingest.RecursiveCharacterTextSplitter = original_splitter
+        ingest.SafeGoogleEmbeddings = original_embeddings
+        ingest.Chroma = original_chroma
+
+        if os.path.exists(test_db_dir):
+            shutil.rmtree(test_db_dir)
+
+    print("OK: large document guard preserves database")
+
+
 def main():
     print("Starting no-API smoke test...")
     print("=" * 60)
@@ -217,6 +329,8 @@ def main():
     test_vector_database_clear_helper()
     test_document_dashboard_stats()
     test_query_history_helpers()
+    test_rag_error_classification()
+    test_large_document_guard_preserves_database()
 
     print("=" * 60)
     print("Smoke test passed successfully.")
