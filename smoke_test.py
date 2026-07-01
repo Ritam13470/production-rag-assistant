@@ -15,6 +15,7 @@ from rag.history import (
     get_query_history_count,
     initialize_query_history
 )
+from rag.observability import get_langsmith_status
 from rag.upload_utils import sanitize_file_name, save_uploaded_files
 
 
@@ -319,6 +320,72 @@ def test_large_document_guard_preserves_database():
     print("OK: large document guard preserves database")
 
 
+
+
+def test_langsmith_observability_defaults():
+    print("Testing LangSmith observability defaults...")
+
+    original_tracing = os.environ.get("LANGSMITH_TRACING")
+    original_api_key = os.environ.get("LANGSMITH_API_KEY")
+    original_project = os.environ.get("LANGSMITH_PROJECT")
+
+    try:
+        os.environ["LANGSMITH_TRACING"] = "false"
+        os.environ["LANGSMITH_API_KEY"] = ""
+        os.environ["LANGSMITH_PROJECT"] = ""
+
+        status = get_langsmith_status()
+
+        assert status["enabled"] is False
+        assert status["tracing_requested"] is False
+        assert status["api_key_configured"] is False
+        assert status["project_name"] == "production-rag-assistant"
+        assert "disabled" in status["reason"].lower()
+
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = ""
+
+        status = get_langsmith_status()
+
+        assert status["enabled"] is False
+        assert status["tracing_requested"] is True
+        assert status["api_key_configured"] is False
+        assert "not configured" in status["reason"].lower()
+
+        os.environ["LANGSMITH_API_KEY"] = "your_langsmith_api_key_here"
+
+        status = get_langsmith_status()
+
+        assert status["enabled"] is False
+        assert status["api_key_configured"] is False
+
+        os.environ["LANGSMITH_API_KEY"] = "lsv2_fake_test_key"
+
+        status = get_langsmith_status()
+
+        assert status["enabled"] is True
+        assert status["api_key_configured"] is True
+        assert status["project_name"] == "production-rag-assistant"
+
+    finally:
+        if original_tracing is None:
+            os.environ.pop("LANGSMITH_TRACING", None)
+        else:
+            os.environ["LANGSMITH_TRACING"] = original_tracing
+
+        if original_api_key is None:
+            os.environ.pop("LANGSMITH_API_KEY", None)
+        else:
+            os.environ["LANGSMITH_API_KEY"] = original_api_key
+
+        if original_project is None:
+            os.environ.pop("LANGSMITH_PROJECT", None)
+        else:
+            os.environ["LANGSMITH_PROJECT"] = original_project
+
+    print("OK: LangSmith observability defaults")
+
+
 def main():
     print("Starting no-API smoke test...")
     print("=" * 60)
@@ -331,6 +398,7 @@ def main():
     test_query_history_helpers()
     test_rag_error_classification()
     test_large_document_guard_preserves_database()
+    test_langsmith_observability_defaults()
 
     print("=" * 60)
     print("Smoke test passed successfully.")

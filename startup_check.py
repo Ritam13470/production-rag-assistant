@@ -31,6 +31,7 @@ REQUIRED_RAG_FILES = [
     "rag/embeddings.py",
     "rag/errors.py",
     "rag/history.py",
+    "rag/observability.py",
     "rag/pipeline.py",
     "rag/prompts.py",
     "rag/upload_utils.py",
