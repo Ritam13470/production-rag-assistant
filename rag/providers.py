@@ -1,4 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from rag.config import (
     CHAT_MODEL,
@@ -32,6 +33,12 @@ def build_embedding_model():
 def build_chat_model():
     if CHAT_PROVIDER == "gemini":
         return ChatGoogleGenerativeAI(
+            model=CHAT_MODEL,
+            temperature=0
+        )
+
+    if CHAT_PROVIDER == "groq":
+        return ChatGroq(
             model=CHAT_MODEL,
             temperature=0
         )

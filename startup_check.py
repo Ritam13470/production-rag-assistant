@@ -47,6 +47,7 @@ REQUIRED_IMPORTS = [
     "langchain_chroma",
     "langchain_core",
     "langchain_google_genai",
+    "langchain_groq",
     "langchain_text_splitters"
 ]
 
@@ -84,6 +85,15 @@ def check_paths(paths, label):
         )
 
 
+def is_real_secret(value, placeholders):
+    if value is None:
+        return False
+
+    normalized = value.strip().lower()
+
+    return normalized not in placeholders
+
+
 def check_env_file():
     print("Checking environment file...")
 
@@ -96,20 +106,39 @@ def check_env_file():
 
     load_dotenv()
 
-    api_key = os.getenv("GOOGLE_API_KEY")
+    google_api_key = os.getenv("GOOGLE_API_KEY")
 
-    if not api_key:
+    if not is_real_secret(
+        google_api_key,
+        {"your_api_key_here", "replace_me", ""}
+    ):
         raise RuntimeError(
-            "GOOGLE_API_KEY is missing from environment variables."
+            "GOOGLE_API_KEY is missing or looks like a placeholder."
         )
 
-    if api_key.strip().lower() in ["your_api_key_here", "replace_me", ""]:
+    chat_provider = os.getenv("CHAT_PROVIDER", "gemini").strip().lower() or "gemini"
+
+    if chat_provider not in {"gemini", "groq"}:
         raise RuntimeError(
-            "GOOGLE_API_KEY looks like a placeholder. Replace it with a real key."
+            "CHAT_PROVIDER must be either gemini or groq."
         )
+
+    if chat_provider == "groq":
+        groq_api_key = os.getenv("GROQ_API_KEY")
+
+        if not is_real_secret(
+            groq_api_key,
+            {"your_groq_api_key_here", "replace_me", ""}
+        ):
+            raise RuntimeError(
+                "GROQ_API_KEY is required when CHAT_PROVIDER=groq."
+            )
+
+        print("OK: GROQ_API_KEY appears configured")
 
     print("OK: .env found")
     print("OK: GOOGLE_API_KEY appears configured")
+    print(f"OK: CHAT_PROVIDER is {chat_provider}")
 
 
 def check_imports():

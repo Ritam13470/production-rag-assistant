@@ -2,9 +2,15 @@ from io import BytesIO
 import os
 import py_compile
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
-from rag.config import read_provider_name
+from rag.config import (
+    SUPPORTED_CHAT_PROVIDERS,
+    SUPPORTED_EMBEDDING_PROVIDERS,
+    read_provider_name
+)
 from rag.database_utils import clear_vector_database
 from rag.errors import create_rag_error
 from rag.document_manager import delete_source_file
@@ -397,39 +403,71 @@ def test_provider_config_defaults():
     try:
         os.environ.pop("TEST_PROVIDER", None)
 
-        assert read_provider_name(
-            "TEST_PROVIDER",
-            "gemini",
-            {"gemini"}
-        ) == "gemini"
-
-        os.environ["TEST_PROVIDER"] = "GEMINI"
+        assert "gemini" in SUPPORTED_CHAT_PROVIDERS
+        assert "groq" in SUPPORTED_CHAT_PROVIDERS
+        assert "gemini" in SUPPORTED_EMBEDDING_PROVIDERS
+        assert "groq" not in SUPPORTED_EMBEDDING_PROVIDERS
 
         assert read_provider_name(
             "TEST_PROVIDER",
             "gemini",
-            {"gemini"}
+            SUPPORTED_CHAT_PROVIDERS
         ) == "gemini"
 
-        os.environ["TEST_PROVIDER"] = "groq"
+        os.environ["TEST_PROVIDER"] = "GROQ"
+
+        assert read_provider_name(
+            "TEST_PROVIDER",
+            "gemini",
+            SUPPORTED_CHAT_PROVIDERS
+        ) == "groq"
+
+        os.environ["TEST_PROVIDER"] = "openai"
 
         try:
             read_provider_name(
                 "TEST_PROVIDER",
                 "gemini",
-                {"gemini"}
+                SUPPORTED_CHAT_PROVIDERS
             )
             raise AssertionError("Unsupported provider was not rejected.")
         except ValueError as error:
             assert "Unsupported TEST_PROVIDER" in str(error)
             assert "gemini" in str(error)
+            assert "groq" in str(error)
 
         status = get_provider_status()
 
-        assert status["chat_provider"] == "gemini"
-        assert status["embedding_provider"] == "gemini"
+        assert status["chat_provider"] in SUPPORTED_CHAT_PROVIDERS
+        assert status["embedding_provider"] in SUPPORTED_EMBEDDING_PROVIDERS
         assert status["chat_model"]
         assert status["embedding_model"]
+
+        env = os.environ.copy()
+        env["CHAT_PROVIDER"] = "groq"
+        env["EMBEDDING_PROVIDER"] = "gemini"
+        env["GROQ_CHAT_MODEL"] = "openai/gpt-oss-20b"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "from rag.providers import get_provider_status; "
+                    "status = get_provider_status(); "
+                    "assert status['chat_provider'] == 'groq'; "
+                    "assert status['embedding_provider'] == 'gemini'; "
+                    "assert status['chat_model'] == 'openai/gpt-oss-20b'; "
+                    "print(status)"
+                )
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        assert "'chat_provider': 'groq'" in result.stdout
 
     finally:
         if original_test_provider is None:
